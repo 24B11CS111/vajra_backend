@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: vajra-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PROJECT_NAME
+        value: VAJRA Production API
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vajra-db
+          property: connectionString
+      - key: BACKEND_CORS_ORIGINS
+        value: '["*"]'
+      - key: LLM_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_MODEL
+        value: google/gemini-2.5-flash
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+databases:
+  - name: vajra-db
+    plan: free
+    databaseName: vajra
+    user: vajra_user
