@@ -18,6 +18,8 @@ import app.models.planner
 import app.models.notification
 import app.models.study
 import app.models.calendar
+import app.models.device
+import app.models.device_action
 
 # Create tables if not exist (ensures initial schema availability)
 try:
