@@ -179,6 +179,88 @@ def run_device_action_tests():
         assert polled.status == "SUCCESS"
         print("[PASS] Test 8: Desktop polls and receives SUCCESS acknowledgement")
 
+        # 10. Remote Action Engine 2.0: Test Timer Dispatch
+        timer_req = RemoteActionDispatchRequest(
+            target_device_id="android_phone_001",
+            action_type="device.timer",
+            parameters={"seconds": 60, "label": "Tea Timer"},
+        )
+        timer_action = device_action_repository.dispatch_action(
+            db=db,
+            user_id=user_a_id,
+            req=timer_req,
+            source_device_id="desktop_win_001",
+        )
+        assert timer_action.status == "PENDING"
+        assert timer_action.action_type == "device.timer"
+        print("[PASS] Test 9: Remote Action 2.0 - Timer dispatch succeeded (mobile_alarms capability)")
+
+        # 11. Remote Action Engine 2.0: Missing 'apps' capability initially fails
+        app_req = RemoteActionDispatchRequest(
+            target_device_id="android_phone_001",
+            action_type="device.app.open",
+            parameters={"app": "chrome", "package": "com.android.chrome"},
+        )
+        try:
+            device_action_repository.dispatch_action(db=db, user_id=user_a_id, req=app_req)
+            assert False, "Should have failed because 'apps' capability is not yet registered"
+        except HTTPException as e:
+            assert e.status_code == 400
+            assert "apps" in e.detail
+            print("[PASS] Test 10: Remote Action 2.0 - App launch correctly blocked until 'apps' capability registered")
+
+        # 12. Register Full Remote Action 2.0 Capabilities on Phone
+        phone_2_req = DeviceRegisterRequest(
+            device_id="android_phone_001",
+            device_type="mobile",
+            device_name="Nothing Phone (2a)",
+            platform="android",
+            app_version="2.0.0",
+            capabilities=["call", "sms", "gps", "flashlight", "mobile_alarms", "media", "settings", "apps"],
+        )
+        device_repository.register_or_heartbeat(db, user_a_id, phone_2_req)
+
+        # 13. Dispatch Media Control
+        media_req = RemoteActionDispatchRequest(
+            target_device_id="android_phone_001",
+            action_type="device.media.play",
+            parameters={"command": "play"},
+        )
+        media_action = device_action_repository.dispatch_action(db=db, user_id=user_a_id, req=media_req)
+        assert media_action.status == "PENDING"
+        print("[PASS] Test 11: Remote Action 2.0 - Media play dispatch succeeded")
+
+        # 14. Dispatch Settings Control
+        settings_req = RemoteActionDispatchRequest(
+            target_device_id="android_phone_001",
+            action_type="device.settings",
+            parameters={"type": "app"},
+        )
+        settings_action = device_action_repository.dispatch_action(db=db, user_id=user_a_id, req=settings_req)
+        assert settings_action.status == "PENDING"
+        print("[PASS] Test 12: Remote Action 2.0 - Settings dispatch succeeded")
+
+        # 15. Dispatch App Open (Chrome)
+        app_action = device_action_repository.dispatch_action(db=db, user_id=user_a_id, req=app_req)
+        assert app_action.status == "PENDING"
+        assert app_action.action_type == "device.app.open"
+        print("[PASS] Test 13: Remote Action 2.0 - Chrome app open dispatch succeeded")
+
+        # 16. Acknowledge App Open
+        app_ack = RemoteActionAckRequest(
+            status="SUCCESS",
+            result_message="Chrome launched on Nothing Phone (2a)",
+        )
+        app_acked = device_action_repository.acknowledge_action(
+            db=db,
+            user_id=user_a_id,
+            action_id=app_action.id,
+            req=app_ack,
+        )
+        assert app_acked.status == "SUCCESS"
+        assert app_acked.result_message == "Chrome launched on Nothing Phone (2a)"
+        print("[PASS] Test 14: Remote Action 2.0 - App open ACK verified")
+
         print("\nALL BACKEND REMOTE ACTION TESTS PASSED: 100% SUCCESS!")
     finally:
         db.close()

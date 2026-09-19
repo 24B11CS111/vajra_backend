@@ -13,7 +13,14 @@ ALLOWED_REMOTE_ACTIONS = {
     "device.flashlight": "flashlight",
     "device.timer": "mobile_alarms",
     "device.settings": "settings",
+    "device.wifi_settings": "settings",
+    "device.bluetooth_settings": "settings",
     "device.media": "media",
+    "device.media.play": "media",
+    "device.media.pause": "media",
+    "device.media.next": "media",
+    "device.media.previous": "media",
+    "device.app.open": "apps",
 }
 
 # Maximum age for active device heartbeat to be considered online (5 minutes)
